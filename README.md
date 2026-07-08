@@ -112,7 +112,7 @@ Funções utilizadas:
 #### Leitura do potenciômetro
 
 ```cpp
-int adc = analogRead(potPin);
+  int leitura = analogRead(potPin);
 ```
 
 Realiza a leitura do sinal analógico gerado pelo potenciômetro.
