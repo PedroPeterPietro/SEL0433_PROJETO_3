@@ -1,212 +1,155 @@
 # SEL0433_PROJETO_3
-# Conceitos Utilizados no Projeto
+# Desenvolvimento do Projeto
 
-## 1. ESP32 DevKit
+## Parte 1 – Controle PWM de LED RGB
 
-A ESP32 DevKit é uma placa de desenvolvimento baseada no microcontrolador ESP32, desenvolvida pela Espressif. Ela possui processador de 32 bits, conectividade Wi-Fi e Bluetooth integradas, diversos pinos de entrada e saída (GPIOs), conversores analógico-digitais (ADC), módulos de PWM por hardware e diversos periféricos que permitem o desenvolvimento de sistemas embarcados.
+### Objetivo
 
-Neste projeto, a ESP32 foi utilizada para realizar o controle PWM de um LED RGB e de um servomotor, além de efetuar a leitura de sinais analógicos por meio do ADC e enviar informações pela comunicação serial.
+Nesta etapa foi desenvolvido um sistema para controle da intensidade luminosa de um LED RGB de cátodo comum utilizando a placa ESP32 DevKit. Cada uma das três cores (vermelho, verde e azul) foi controlada de forma independente por meio da técnica de Modulação por Largura de Pulso (PWM), utilizando a biblioteca nativa LEDC da ESP32.
 
----
+A frequência do PWM foi configurada para **5 kHz** com resolução de **8 bits**, conforme especificado no enunciado. Dessa forma, cada canal possui 256 níveis possíveis de duty cycle (0 a 255), permitindo o ajuste preciso da intensidade luminosa de cada componente de cor.
 
-# 2. Modulação por Largura de Pulso (PWM)
+Os duty cycles das três cores foram incrementados continuamente, porém utilizando velocidades diferentes para cada canal. Foram definidos incrementos de 15 unidades para o vermelho, 5 unidades para o verde e 10 unidades para o azul. Quando um canal atinge o valor máximo (255), seu duty cycle retorna para zero e o processo continua em execução contínua.
 
-PWM (Pulse Width Modulation) é uma técnica utilizada para controlar a potência média fornecida a um dispositivo através da variação da largura do pulso de um sinal digital.
-
-Embora a tensão aplicada permaneça constante, o tempo em que o sinal permanece em nível lógico alto pode ser alterado, permitindo controlar dispositivos como LEDs, motores DC e servomotores.
-
-Os principais parâmetros do PWM são:
-
-* Frequência
-* Duty Cycle
+Durante toda a execução do programa, a ESP32 envia pela interface serial os valores de duty cycle aplicados em cada canal, permitindo acompanhar em tempo real o funcionamento do sistema.
 
 ---
 
-# 3. Duty Cycle
+### Bibliotecas utilizadas
 
-O Duty Cycle representa a porcentagem do período em que o sinal permanece em nível alto.
+#### Biblioteca LEDC
 
-Sua expressão é dada por:
+A biblioteca LEDC é responsável pela geração dos sinais PWM utilizando os periféricos de hardware da ESP32. Sua utilização permite gerar sinais PWM com frequência e resolução configuráveis, sem sobrecarregar o processador.
 
-[
-Duty=\frac{T_{ON}}{T}\times100%
-]
+Funções utilizadas:
 
-onde:
-
-* (T_{ON}) é o tempo em nível alto;
-* (T) é o período total do sinal.
-
-Exemplos:
-
-| Duty Cycle | Comportamento                 |
-| ---------- | ----------------------------- |
-| 0%         | Sempre desligado              |
-| 25%        | Ligado durante 25% do período |
-| 50%        | Ligado metade do tempo        |
-| 75%        | Ligado durante 75% do período |
-| 100%       | Sempre ligado                 |
-
-No LED RGB, o duty cycle controla a intensidade luminosa de cada cor.
+* `ledcAttach()` — configura o pino para operar com PWM.
+* `ledcWrite()` — atualiza o duty cycle aplicado ao canal.
 
 ---
 
-# 4. Frequência do PWM
+### Principais trechos do código
 
-A frequência corresponde ao número de ciclos PWM gerados por segundo.
+#### Inicialização da comunicação serial
 
-É calculada por:
+```cpp
+Serial.begin(115200);
+```
 
-[
-f=\frac{1}{T}
-]
-
-No controle do LED RGB foi utilizada uma frequência de **5 kHz**, conforme especificado no enunciado.
-
-Já no servomotor, a frequência normalmente utilizada é de aproximadamente **50 Hz**, padrão adotado pela biblioteca ESP32Servo.
+Inicializa a interface UART utilizada para monitorar os valores do PWM.
 
 ---
 
-# 5. Resolução do PWM
+#### Configuração do PWM
 
-A resolução define quantos níveis diferentes de duty cycle podem ser utilizados.
+```cpp
+ledcAttach(RED_PIN, PWM_FREQ, PWM_RES);
+ledcAttach(GREEN_PIN, PWM_FREQ, PWM_RES);
+ledcAttach(BLUE_PIN, PWM_FREQ, PWM_RES);
+```
 
-Neste projeto foi empregada resolução de **8 bits**, permitindo:
-
-[
-2^8=256
-]
-
-níveis distintos.
-
-Assim, o duty cycle varia entre:
-
-* 0
-* 255
-
-Quanto maior a resolução, mais preciso é o controle da intensidade luminosa ou da posição do atuador.
+Configura três canais PWM independentes, um para cada cor do LED RGB.
 
 ---
 
-# 6. Biblioteca LEDC
+#### Atualização dos duty cycles
 
-A biblioteca LEDC (LED Control PWM) é o módulo nativo da ESP32 responsável pela geração de sinais PWM utilizando hardware dedicado.
+```cpp
+ledcWrite(RED_PIN, redDuty);
+ledcWrite(GREEN_PIN, greenDuty);
+ledcWrite(BLUE_PIN, blueDuty);
+```
 
-Ela permite configurar:
-
-* frequência;
-* resolução;
-* canais independentes de PWM.
-
-No projeto, foram utilizados três canais independentes para controlar:
-
-* Vermelho;
-* Verde;
-* Azul.
-
-Cada canal possui um duty cycle próprio, permitindo gerar diferentes combinações de cores.
+Aplica os valores calculados de duty cycle aos três canais PWM.
 
 ---
 
-# 7. LED RGB
+### Conceitos envolvidos
 
-O LED RGB possui três LEDs internos:
-
-* Vermelho (Red)
-* Verde (Green)
-* Azul (Blue)
-
-Controlando a intensidade de cada cor através do PWM é possível produzir diversas combinações de cores.
-
-Foi utilizado um LED RGB de cátodo comum, no qual o terminal comum é conectado ao GND.
-
-Cada cor foi ligada à ESP32 através de um resistor de 220 Ω para limitar a corrente elétrica.
+* Modulação por largura de pulso (PWM);
+* Duty Cycle;
+* Frequência do PWM;
+* Resolução de 8 bits;
+* Biblioteca LEDC;
+* Comunicação Serial (UART);
+* Controle independente dos canais PWM.
 
 ---
 
-# 8. Comunicação Serial (UART)
+### Resultados
 
-A UART (Universal Asynchronous Receiver/Transmitter) é um protocolo de comunicação serial amplamente utilizado em sistemas embarcados.
-
-Neste projeto foi utilizada a taxa de transmissão de **115200 baud**, permitindo acompanhar em tempo real:
-
-* duty cycle;
-* incrementos utilizados;
-* valores lidos pelo ADC;
-* ângulo do servomotor.
-
-A comunicação serial facilita a depuração e a validação do funcionamento do sistema.
+A simulação demonstrou que o LED RGB variou continuamente suas cores conforme os incrementos programados. Como cada canal possui uma velocidade de incremento diferente, diversas combinações de cores foram produzidas ao longo da execução. O monitor serial apresentou corretamente os valores de duty cycle aplicados em cada cor, permitindo validar o funcionamento do sistema.
 
 ---
 
-# 9. Conversor Analógico-Digital (ADC)
+## Parte 2 – Controle de Servomotor utilizando Potenciômetro
 
-O ADC (Analog-to-Digital Converter) converte uma tensão analógica em um valor digital.
+### Objetivo
 
-Na ESP32, o ADC possui resolução de **12 bits**, produzindo valores entre:
+Na segunda etapa foi desenvolvido um sistema para controle da posição angular de um servomotor utilizando um potenciômetro conectado à entrada analógica da ESP32.
 
-* 0
-* 4095
+O potenciômetro funciona como um divisor de tensão, produzindo um sinal analógico proporcional à posição do seu eixo. Esse sinal é convertido pelo conversor analógico-digital (ADC) da ESP32, gerando valores entre 0 e 4095. Em seguida, esses valores são convertidos para ângulos entre 0° e 180°, que são enviados ao servomotor utilizando a biblioteca ESP32Servo.
 
-No projeto, o ADC foi utilizado para ler a posição do potenciômetro.
-
-Posteriormente, esses valores foram convertidos em ângulos entre 0° e 180°, permitindo controlar o servomotor.
+O monitor serial apresenta continuamente os valores lidos pelo ADC e o ângulo correspondente, permitindo verificar o correto funcionamento da conversão.
 
 ---
 
-# 10. Potenciômetro
+### Bibliotecas utilizadas
 
-O potenciômetro é um resistor variável utilizado como divisor de tensão.
+#### Biblioteca ESP32Servo
 
-Ao girar seu eixo, a tensão presente no terminal central varia continuamente entre 0 V e 3,3 V.
+A biblioteca ESP32Servo simplifica o controle de servomotores na ESP32, gerando automaticamente os pulsos PWM necessários para o posicionamento do eixo.
 
-Essa tensão é lida pelo ADC da ESP32, permitindo controlar a posição do servomotor de forma manual.
+Funções utilizadas:
 
----
-
-# 11. Servomotor
-
-O servomotor é um atuador capaz de posicionar seu eixo em um ângulo específico.
-
-Seu controle é realizado por PWM.
-
-A largura do pulso determina a posição do eixo:
-
-* aproximadamente 500 µs → 0°
-* aproximadamente 1500 µs → 90°
-* aproximadamente 2500 µs → 180°
-
-A biblioteca ESP32Servo realiza automaticamente a geração desses pulsos.
+* `attach()` — associa o servomotor ao pino da ESP32.
+* `write()` — posiciona o servo no ângulo especificado.
 
 ---
 
-# 12. Biblioteca ESP32Servo
+### Principais trechos do código
 
-A biblioteca ESP32Servo simplifica o controle de servomotores na ESP32.
+#### Leitura do potenciômetro
 
-Ela encapsula toda a geração do sinal PWM necessário para movimentar o servo.
+```cpp
+int adc = analogRead(potPin);
+```
 
-As principais funções utilizadas foram:
-
-* `attach()` – associa o servo ao pino escolhido;
-* `write()` – define o ângulo desejado.
-
----
-
-# 13. Simulador Wokwi
-
-O Wokwi é um ambiente de simulação de sistemas embarcados que permite desenvolver e testar projetos sem a necessidade de hardware físico.
-
-No projeto, o simulador foi utilizado para:
-
-* montar o circuito;
-* testar o LED RGB;
-* controlar o servomotor;
-* visualizar a saída serial;
-* validar o funcionamento do software.
+Realiza a leitura do sinal analógico gerado pelo potenciômetro.
 
 ---
 
-# 14. Considerações Finais
+#### Conversão da leitura para ângulo
 
-Durante o desenvolvimento foram aplicados diversos conceitos fundamentais de sistemas embarcados, como geração de PWM, leitura analógica utilizando ADC, comunicação serial e controle de atuadores. A utilização das bibliotecas LEDC e ESP32Servo simplificou a implementação, enquanto o ambiente Wokwi possibilitou validar o funcionamento do hardware e do software antes de uma eventual montagem física.
+```cpp
+int angulo = map(adc, 0, 4095, 0, 180);
+```
+
+Converte a faixa do ADC (0 a 4095) para o intervalo de operação do servomotor (0° a 180°).
+
+---
+
+#### Controle do servomotor
+
+```cpp
+servo.write(angulo);
+```
+
+Posiciona o eixo do servomotor conforme o ângulo calculado.
+
+---
+
+### Conceitos envolvidos
+
+* Conversão Analógico-Digital (ADC);
+* Potenciômetro como divisor de tensão;
+* Controle PWM de servomotores;
+* Biblioteca ESP32Servo;
+* Comunicação Serial (UART);
+* Conversão de valores utilizando a função `map()`.
+
+---
+
+### Resultados
+
+Durante os testes no simulador Wokwi, o servomotor acompanhou corretamente a posição do potenciômetro. À medida que o potenciômetro era ajustado, os valores do ADC variavam e eram convertidos em ângulos proporcionais entre 0° e 180°. O monitor serial apresentou continuamente as leituras do ADC e os respectivos ângulos, confirmando o correto funcionamento do sistema. Pequenas oscilações observadas nas leituras analógicas são esperadas devido às características do ADC e do ambiente de simulação.
